@@ -1,0 +1,865 @@
+<!DOCTYPE html>
+
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>台灣華語朗讀器</title>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@300;400;500;700&family=Bebas+Neue&family=DM+Mono:wght@300;400&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0d0f14;
+    --surface: #161921;
+    --surface2: #1e2230;
+    --border: #2a2f42;
+    --text: #e8eaf2;
+    --muted: #5a6080;
+    --accent: #00c9a7;
+    --accent2: #00a589;
+    --red: #e05c5c;
+    --yellow: #f5c842;
+    --glow: rgba(0,201,167,0.18);
+  }
+
+- { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+background: var(–bg);
+color: var(–text);
+font-family: ‘Noto Sans TC’, sans-serif;
+min-height: 100vh;
+display: flex;
+flex-direction: column;
+align-items: center;
+padding: 40px 16px 60px;
+}
+
+/* BG GRID */
+body::before {
+content: ‘’;
+position: fixed;
+inset: 0;
+background-image:
+linear-gradient(rgba(0,201,167,0.03) 1px, transparent 1px),
+linear-gradient(90deg, rgba(0,201,167,0.03) 1px, transparent 1px);
+background-size: 40px 40px;
+pointer-events: none;
+z-index: 0;
+}
+
+.wrap {
+position: relative;
+z-index: 1;
+width: 100%;
+max-width: 700px;
+}
+
+/* HEADER */
+header {
+margin-bottom: 40px;
+display: flex;
+align-items: flex-end;
+gap: 16px;
+}
+
+.logo-mark {
+width: 48px;
+height: 48px;
+background: var(–accent);
+border-radius: 4px;
+display: flex;
+align-items: center;
+justify-content: center;
+flex-shrink: 0;
+box-shadow: 0 0 24px var(–glow);
+}
+
+.logo-mark svg { width: 28px; height: 28px; }
+
+.header-text h1 {
+font-family: ‘Bebas Neue’, sans-serif;
+font-size: 2rem;
+letter-spacing: 0.12em;
+color: var(–text);
+line-height: 1;
+}
+
+.header-text .sub {
+font-family: ‘DM Mono’, monospace;
+font-size: 0.65rem;
+color: var(–muted);
+letter-spacing: 0.2em;
+margin-top: 4px;
+}
+
+/* STATUS BAR */
+.status-bar {
+display: flex;
+align-items: center;
+gap: 10px;
+margin-bottom: 20px;
+font-family: ‘DM Mono’, monospace;
+font-size: 0.7rem;
+color: var(–muted);
+}
+
+.status-dot {
+width: 7px; height: 7px;
+border-radius: 50%;
+background: var(–muted);
+flex-shrink: 0;
+transition: background 0.3s, box-shadow 0.3s;
+}
+.status-dot.ready { background: var(–accent); box-shadow: 0 0 8px var(–glow); }
+.status-dot.speaking { background: var(–yellow); box-shadow: 0 0 8px rgba(245,200,66,0.4); animation: pulse-dot 1s infinite; }
+.status-dot.paused { background: var(–red); }
+
+@keyframes pulse-dot {
+0%,100% { opacity: 1; }
+50% { opacity: 0.4; }
+}
+
+#statusText { transition: color 0.3s; }
+#statusText.speaking { color: var(–yellow); }
+#statusText.ready { color: var(–accent); }
+
+/* VOICE BADGE */
+.voice-badge {
+margin-left: auto;
+padding: 3px 10px;
+border: 1px solid var(–border);
+border-radius: 99px;
+font-size: 0.6rem;
+letter-spacing: 0.1em;
+color: var(–muted);
+}
+
+.voice-badge.tw { border-color: var(–accent); color: var(–accent); }
+
+/* TEXTAREA */
+.input-block {
+background: var(–surface);
+border: 1px solid var(–border);
+border-radius: 6px;
+overflow: hidden;
+margin-bottom: 16px;
+transition: border-color 0.2s;
+}
+
+.input-block:focus-within { border-color: var(–accent); }
+
+.input-header {
+display: flex;
+align-items: center;
+justify-content: space-between;
+padding: 10px 16px;
+border-bottom: 1px solid var(–border);
+background: var(–surface2);
+}
+
+.input-header span {
+font-family: ‘DM Mono’, monospace;
+font-size: 0.65rem;
+letter-spacing: 0.15em;
+color: var(–muted);
+text-transform: uppercase;
+}
+
+#charCount {
+font-family: ‘DM Mono’, monospace;
+font-size: 0.65rem;
+color: var(–muted);
+}
+
+textarea {
+width: 100%;
+min-height: 160px;
+background: transparent;
+border: none;
+outline: none;
+color: var(–text);
+font-family: ‘Noto Sans TC’, sans-serif;
+font-size: 1rem;
+line-height: 1.85;
+padding: 16px;
+resize: vertical;
+}
+
+textarea::placeholder {
+color: var(–muted);
+font-size: 0.9rem;
+}
+
+/* HIGHLIGHT DISPLAY */
+.display-block {
+background: var(–surface);
+border: 1px solid var(–border);
+border-radius: 6px;
+padding: 16px;
+min-height: 80px;
+font-size: 1rem;
+line-height: 1.85;
+margin-bottom: 16px;
+display: none;
+word-break: break-all;
+}
+
+.display-block.visible { display: block; }
+
+.char-spoken {
+color: var(–muted);
+transition: color 0.05s;
+}
+
+.char-current {
+background: var(–accent);
+color: #000;
+border-radius: 2px;
+padding: 0 1px;
+}
+
+.char-pending { color: var(–text); }
+
+/* CONTROLS PANEL */
+.controls {
+background: var(–surface);
+border: 1px solid var(–border);
+border-radius: 6px;
+padding: 20px 24px;
+display: flex;
+flex-direction: column;
+gap: 20px;
+}
+
+/* SPEED SLIDER */
+.slider-row {
+display: flex;
+flex-direction: column;
+gap: 10px;
+}
+
+.slider-label-row {
+display: flex;
+justify-content: space-between;
+align-items: center;
+}
+
+.slider-label {
+font-family: ‘DM Mono’, monospace;
+font-size: 0.65rem;
+letter-spacing: 0.15em;
+color: var(–muted);
+text-transform: uppercase;
+}
+
+.speed-val {
+font-family: ‘Bebas Neue’, sans-serif;
+font-size: 1.6rem;
+color: var(–accent);
+letter-spacing: 0.05em;
+line-height: 1;
+}
+
+.speed-val span {
+font-family: ‘DM Mono’, monospace;
+font-size: 0.7rem;
+color: var(–muted);
+margin-left: 2px;
+}
+
+.slider-track {
+position: relative;
+height: 36px;
+display: flex;
+align-items: center;
+}
+
+input[type=range] {
+-webkit-appearance: none;
+appearance: none;
+width: 100%;
+height: 4px;
+border-radius: 2px;
+background: var(–border);
+outline: none;
+cursor: pointer;
+}
+
+input[type=range]::-webkit-slider-thumb {
+-webkit-appearance: none;
+width: 20px;
+height: 20px;
+border-radius: 50%;
+background: var(–accent);
+cursor: pointer;
+box-shadow: 0 0 12px var(–glow);
+transition: transform 0.15s, box-shadow 0.15s;
+}
+
+input[type=range]::-webkit-slider-thumb:hover {
+transform: scale(1.2);
+box-shadow: 0 0 20px var(–glow);
+}
+
+input[type=range]::-moz-range-thumb {
+width: 20px; height: 20px;
+border-radius: 50%;
+background: var(–accent);
+cursor: pointer;
+border: none;
+}
+
+.speed-ticks {
+display: flex;
+justify-content: space-between;
+font-family: ‘DM Mono’, monospace;
+font-size: 0.58rem;
+color: var(–muted);
+padding: 0 1px;
+}
+
+/* PITCH SLIDER */
+.pitch-row {
+display: flex;
+align-items: center;
+gap: 12px;
+}
+
+.pitch-label {
+font-family: ‘DM Mono’, monospace;
+font-size: 0.62rem;
+letter-spacing: 0.12em;
+color: var(–muted);
+text-transform: uppercase;
+white-space: nowrap;
+width: 52px;
+flex-shrink: 0;
+}
+
+.pitch-val {
+font-family: ‘DM Mono’, monospace;
+font-size: 0.75rem;
+color: var(–accent);
+width: 36px;
+text-align: right;
+flex-shrink: 0;
+}
+
+.pitch-slider {
+flex: 1;
+}
+
+/* BUTTONS */
+.btn-row {
+display: flex;
+gap: 10px;
+flex-wrap: wrap;
+}
+
+.btn {
+display: inline-flex;
+align-items: center;
+justify-content: center;
+gap: 8px;
+padding: 12px 22px;
+border: none;
+border-radius: 4px;
+cursor: pointer;
+font-family: ‘DM Mono’, monospace;
+font-size: 0.72rem;
+letter-spacing: 0.1em;
+text-transform: uppercase;
+transition: all 0.18s;
+flex-shrink: 0;
+}
+
+.btn-play {
+background: var(–accent);
+color: #000;
+font-weight: 700;
+flex: 1;
+box-shadow: 0 0 0 rgba(0,201,167,0);
+}
+
+.btn-play:hover:not(:disabled) {
+background: var(–accent2);
+box-shadow: 0 0 24px var(–glow);
+transform: translateY(-1px);
+}
+
+.btn-play:disabled {
+background: var(–border);
+color: var(–muted);
+cursor: not-allowed;
+}
+
+.btn-pause {
+background: var(–surface2);
+color: var(–yellow);
+border: 1px solid var(–yellow);
+}
+
+.btn-pause:hover { background: rgba(245,200,66,0.08); }
+
+.btn-stop {
+background: var(–surface2);
+color: var(–red);
+border: 1px solid var(–red);
+}
+
+.btn-stop:hover { background: rgba(224,92,92,0.08); }
+
+.btn-icon {
+font-size: 1rem;
+line-height: 1;
+}
+
+/* PROGRESS */
+.progress-row {
+display: flex;
+align-items: center;
+gap: 10px;
+}
+
+.progress-track {
+flex: 1;
+height: 3px;
+background: var(–border);
+border-radius: 2px;
+overflow: hidden;
+}
+
+.progress-fill {
+height: 100%;
+background: var(–accent);
+border-radius: 2px;
+width: 0%;
+transition: width 0.3s;
+box-shadow: 0 0 8px var(–glow);
+}
+
+.progress-pct {
+font-family: ‘DM Mono’, monospace;
+font-size: 0.65rem;
+color: var(–muted);
+width: 36px;
+text-align: right;
+}
+
+/* WAVE ANIMATION */
+.wave-bars {
+display: flex;
+align-items: flex-end;
+gap: 3px;
+height: 24px;
+opacity: 0;
+transition: opacity 0.3s;
+}
+
+.wave-bars.active { opacity: 1; }
+
+.wave-bar {
+width: 3px;
+background: var(–accent);
+border-radius: 2px;
+animation: wave 0.8s ease-in-out infinite;
+min-height: 3px;
+}
+
+.wave-bar:nth-child(1) { animation-delay: 0s; }
+.wave-bar:nth-child(2) { animation-delay: 0.1s; }
+.wave-bar:nth-child(3) { animation-delay: 0.2s; }
+.wave-bar:nth-child(4) { animation-delay: 0.15s; }
+.wave-bar:nth-child(5) { animation-delay: 0.05s; }
+
+@keyframes wave {
+0%,100% { height: 4px; }
+50% { height: 22px; }
+}
+
+/* WARNING */
+.warning {
+background: rgba(245,200,66,0.08);
+border: 1px solid rgba(245,200,66,0.25);
+border-radius: 4px;
+padding: 10px 14px;
+font-size: 0.72rem;
+color: var(–yellow);
+font-family: ‘DM Mono’, monospace;
+line-height: 1.6;
+display: none;
+margin-top: 12px;
+}
+
+.warning.visible { display: block; }
+
+footer {
+margin-top: 40px;
+font-family: ‘DM Mono’, monospace;
+font-size: 0.6rem;
+color: var(–muted);
+letter-spacing: 0.15em;
+text-align: center;
+opacity: 0.5;
+}
+</style>
+
+</head>
+<body>
+<div class="wrap">
+
+  <header>
+    <div class="logo-mark">
+      <svg viewBox="0 0 28 28" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <rect x="4" y="8" width="4" height="12" rx="2" fill="#000" opacity="0.9"/>
+        <rect x="10" y="4" width="4" height="20" rx="2" fill="#000" opacity="0.9"/>
+        <rect x="16" y="10" width="4" height="8" rx="2" fill="#000" opacity="0.9"/>
+        <rect x="22" y="7" width="4" height="14" rx="2" fill="#000" opacity="0.9"/>
+      </svg>
+    </div>
+    <div class="header-text">
+      <h1>台灣華語 朗讀器</h1>
+      <div class="sub">TAIWAN MANDARIN TEXT-TO-SPEECH PLAYER</div>
+    </div>
+  </header>
+
+  <!-- STATUS BAR -->
+
+  <div class="status-bar">
+    <div class="status-dot" id="statusDot"></div>
+    <span id="statusText">語音引擎初始化中…</span>
+    <div class="wave-bars" id="waveBars">
+      <div class="wave-bar"></div>
+      <div class="wave-bar"></div>
+      <div class="wave-bar"></div>
+      <div class="wave-bar"></div>
+      <div class="wave-bar"></div>
+    </div>
+    <div class="voice-badge" id="voiceBadge">— 音声なし —</div>
+  </div>
+
+  <!-- TEXT INPUT -->
+
+  <div class="input-block" id="inputBlock">
+    <div class="input-header">
+      <span>テキスト入力</span>
+      <span id="charCount">0 字</span>
+    </div>
+    <textarea id="textInput" placeholder="請在此貼上台灣華語文章…&#10;&#10;例：台灣是個多元文化的社會，融合了閩南、客家、原住民族及外來文化，形成獨特的台灣文化認同。"></textarea>
+  </div>
+
+  <!-- HIGHLIGHT DISPLAY -->
+
+  <div class="display-block" id="displayBlock"></div>
+
+  <!-- CONTROLS -->
+
+  <div class="controls">
+
+```
+<!-- SPEED -->
+<div class="slider-row">
+  <div class="slider-label-row">
+    <div class="slider-label">再生速度 · SPEED</div>
+    <div class="speed-val" id="speedVal">1.0<span>×</span></div>
+  </div>
+  <div class="slider-track">
+    <input type="range" id="speedSlider" min="0.5" max="2.0" step="0.05" value="1.0">
+  </div>
+  <div class="speed-ticks">
+    <span>0.5×</span><span>0.75×</span><span>1.0×</span><span>1.25×</span><span>1.5×</span><span>1.75×</span><span>2.0×</span>
+  </div>
+</div>
+
+<!-- PITCH -->
+<div class="pitch-row">
+  <div class="pitch-label">音程</div>
+  <input type="range" class="pitch-slider" id="pitchSlider" min="0.5" max="2.0" step="0.1" value="1.0">
+  <div class="pitch-val" id="pitchVal">1.0</div>
+</div>
+
+<!-- PROGRESS -->
+<div class="progress-row">
+  <div class="progress-track">
+    <div class="progress-fill" id="progressFill"></div>
+  </div>
+  <div class="progress-pct" id="progressPct">—</div>
+</div>
+
+<!-- BUTTONS -->
+<div class="btn-row">
+  <button class="btn btn-play" id="playBtn" disabled onclick="speak()">
+    <span class="btn-icon">▶</span> 再生
+  </button>
+  <button class="btn btn-pause" id="pauseBtn" onclick="togglePause()" style="display:none;">
+    <span class="btn-icon">⏸</span> 一時停止
+  </button>
+  <button class="btn btn-stop" id="stopBtn" onclick="stopSpeech()" style="display:none;">
+    <span class="btn-icon">■</span> 停止
+  </button>
+</div>
+```
+
+  </div>
+
+  <!-- WARNING -->
+
+  <div class="warning" id="warning"></div>
+
+  <footer>WEB SPEECH API · zh-TW · TAIWAN MANDARIN VOICE ENGINE</footer>
+</div>
+
+<script>
+  const synth = window.speechSynthesis;
+  let voices = [];
+  let twVoice = null;
+  let utterance = null;
+  let isPaused = false;
+  let currentText = '';
+  let charIndex = 0;
+  let totalChars = 0;
+
+  // --- Voice init ---
+  function loadVoices() {
+    voices = synth.getVoices();
+    twVoice = findTWVoice(voices);
+    updateVoiceBadge();
+  }
+
+  function findTWVoice(list) {
+    // Priority: zh-TW exact match, then zh_TW, then zh-Hant
+    const priorities = [
+      v => v.lang === 'zh-TW',
+      v => v.lang.startsWith('zh-TW'),
+      v => v.lang === 'zh_TW',
+      v => v.lang.toLowerCase().includes('zh-tw'),
+      v => v.lang.toLowerCase().includes('zh_tw'),
+      v => v.lang.toLowerCase().startsWith('zh-hant'),
+      v => v.lang.toLowerCase().startsWith('zh') && v.name.toLowerCase().includes('taiwan'),
+      v => v.lang.toLowerCase().startsWith('zh') && (v.name.toLowerCase().includes('sin-ji') || v.name.toLowerCase().includes('meijia') || v.name.toLowerCase().includes('美佳') || v.name.toLowerCase().includes('美嘉')),
+    ];
+
+    for (const fn of priorities) {
+      const found = list.find(fn);
+      if (found) return found;
+    }
+
+    // Fallback: any zh voice
+    return list.find(v => v.lang.toLowerCase().startsWith('zh')) || null;
+  }
+
+  function updateVoiceBadge() {
+    const badge = document.getElementById('voiceBadge');
+    const dot = document.getElementById('statusDot');
+    const statusText = document.getElementById('statusText');
+
+    if (twVoice) {
+      badge.textContent = twVoice.name + ' [' + twVoice.lang + ']';
+      badge.className = 'voice-badge ' + (twVoice.lang.includes('TW') || twVoice.lang.includes('tw') ? 'tw' : '');
+      dot.className = 'status-dot ready';
+      statusText.className = 'ready';
+      statusText.textContent = 'zh-TW 音声準備完了';
+    } else {
+      badge.textContent = '音声なし';
+      dot.className = 'status-dot';
+      statusText.textContent = '中国語音声が見つかりません';
+      showWarning('お使いのブラウザに中国語（zh-TW）音声がインストールされていません。\nChrome または Safari でご利用ください。macOS/iOS では「システム設定 → アクセシビリティ → 読み上げコンテンツ」から「中国語（台湾）」をインストールできます。');
+    }
+  }
+
+  // Voices may load async
+  if (synth.onvoiceschanged !== undefined) {
+    synth.onvoiceschanged = loadVoices;
+  }
+  loadVoices();
+  setTimeout(loadVoices, 500);
+
+  // --- Text input ---
+  const textInput = document.getElementById('textInput');
+  textInput.addEventListener('input', () => {
+    const txt = textInput.value.trim().replace(/\s+/g, '');
+    document.getElementById('charCount').textContent = txt.length + ' 字';
+    document.getElementById('playBtn').disabled = txt.length === 0 || !twVoice;
+  });
+
+  // --- Speed slider ---
+  const speedSlider = document.getElementById('speedSlider');
+  speedSlider.addEventListener('input', () => {
+    const v = parseFloat(speedSlider.value).toFixed(2);
+    document.getElementById('speedVal').innerHTML = v + '<span>×</span>';
+    if (utterance) utterance.rate = parseFloat(v);
+  });
+
+  // --- Pitch slider ---
+  const pitchSlider = document.getElementById('pitchSlider');
+  pitchSlider.addEventListener('input', () => {
+    const v = parseFloat(pitchSlider.value).toFixed(1);
+    document.getElementById('pitchVal').textContent = v;
+    if (utterance) utterance.pitch = parseFloat(v);
+  });
+
+  // --- Build display block ---
+  function buildDisplay(text) {
+    const block = document.getElementById('displayBlock');
+    block.innerHTML = '';
+    [...text].forEach((ch, i) => {
+      const span = document.createElement('span');
+      span.textContent = ch;
+      span.className = 'char-pending';
+      span.id = 'c' + i;
+      block.appendChild(span);
+    });
+    block.classList.add('visible');
+    document.getElementById('inputBlock').style.display = 'none';
+  }
+
+  function updateHighlight(idx, length) {
+    // Reset previous current
+    const prev = document.querySelector('.char-current');
+    if (prev) { prev.className = 'char-spoken'; }
+
+    // Mark spoken up to idx
+    for (let i = 0; i < idx; i++) {
+      const el = document.getElementById('c' + i);
+      if (el) el.className = 'char-spoken';
+    }
+
+    // Current word highlight
+    for (let i = idx; i < Math.min(idx + Math.max(length, 1), totalChars); i++) {
+      const el = document.getElementById('c' + i);
+      if (el) el.className = 'char-current';
+    }
+
+    // Progress
+    const pct = Math.min(Math.round(idx / totalChars * 100), 100);
+    document.getElementById('progressFill').style.width = pct + '%';
+    document.getElementById('progressPct').textContent = pct + '%';
+
+    // Scroll into view
+    const cur = document.querySelector('.char-current');
+    if (cur) cur.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+  }
+
+  // --- Speak ---
+  function speak() {
+    if (!twVoice) return;
+    const raw = textInput.value.trim();
+    if (!raw) return;
+
+    // Cancel existing
+    synth.cancel();
+
+    currentText = raw;
+    totalChars = [...raw].length;
+    buildDisplay(raw);
+
+    const rate = parseFloat(speedSlider.value);
+    const pitch = parseFloat(pitchSlider.value);
+
+    utterance = new SpeechSynthesisUtterance(raw);
+    utterance.voice = twVoice;
+    utterance.lang = 'zh-TW';
+    utterance.rate = rate;
+    utterance.pitch = pitch;
+    utterance.volume = 1;
+
+    utterance.onboundary = (e) => {
+      if (e.name === 'word' || e.name === 'sentence') {
+        charIndex = e.charIndex;
+        updateHighlight(e.charIndex, e.charLength || 1);
+      }
+    };
+
+    utterance.onstart = () => {
+      setPlayingState(true);
+    };
+
+    utterance.onend = () => {
+      // Mark all as spoken
+      document.querySelectorAll('.char-pending, .char-current').forEach(el => el.className = 'char-spoken');
+      document.getElementById('progressFill').style.width = '100%';
+      document.getElementById('progressPct').textContent = '100%';
+      setPlayingState(false);
+      setStatus('完成', 'ready');
+    };
+
+    utterance.onerror = (e) => {
+      setPlayingState(false);
+      if (e.error !== 'interrupted') {
+        showWarning('音声合成エラー: ' + e.error + '\nブラウザが zh-TW 音声をサポートしていない可能性があります。');
+      }
+    };
+
+    synth.speak(utterance);
+    isPaused = false;
+  }
+
+  function togglePause() {
+    if (!synth.speaking) return;
+    if (isPaused) {
+      synth.resume();
+      isPaused = false;
+      document.getElementById('pauseBtn').innerHTML = '<span class="btn-icon">⏸</span> 一時停止';
+      setStatus('再生中', 'speaking');
+      document.getElementById('waveBars').classList.add('active');
+    } else {
+      synth.pause();
+      isPaused = true;
+      document.getElementById('pauseBtn').innerHTML = '<span class="btn-icon">▶</span> 再開';
+      setStatus('一時停止中', '');
+      document.getElementById('waveBars').classList.remove('active');
+      document.getElementById('statusDot').className = 'status-dot paused';
+    }
+  }
+
+  function stopSpeech() {
+    synth.cancel();
+    isPaused = false;
+    setPlayingState(false);
+    // Restore input view
+    document.getElementById('displayBlock').classList.remove('visible');
+    document.getElementById('inputBlock').style.display = '';
+    document.getElementById('progressFill').style.width = '0%';
+    document.getElementById('progressPct').textContent = '—';
+    setStatus('停止', 'ready');
+  }
+
+  function setPlayingState(playing) {
+    document.getElementById('playBtn').style.display = playing ? 'none' : 'inline-flex';
+    document.getElementById('pauseBtn').style.display = playing ? 'inline-flex' : 'none';
+    document.getElementById('stopBtn').style.display = playing ? 'inline-flex' : 'none';
+    document.getElementById('waveBars').classList.toggle('active', playing);
+    if (playing) {
+      setStatus('再生中', 'speaking');
+    } else {
+      document.getElementById('statusDot').className = 'status-dot ready';
+      document.getElementById('statusText').className = 'ready';
+    }
+  }
+
+  function setStatus(msg, cls) {
+    const t = document.getElementById('statusText');
+    const d = document.getElementById('statusDot');
+    t.textContent = msg;
+    t.className = cls;
+    d.className = 'status-dot ' + cls;
+  }
+
+  function showWarning(msg) {
+    const w = document.getElementById('warning');
+    w.textContent = msg;
+    w.classList.add('visible');
+  }
+
+  // Workaround: Chrome pauses long utterances after ~15s
+  // Periodically nudge synth to keep it alive
+  setInterval(() => {
+    if (synth.speaking && !isPaused) {
+      synth.pause();
+      synth.resume();
+    }
+  }, 12000);
+</script>
+
+</body>
+</html>
